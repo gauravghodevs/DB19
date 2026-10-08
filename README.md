@@ -1,26 +1,52 @@
-# SecureOps — Enterprise DevSecOps Platform on OpenShift
+# SecureOps — Enterprise DevSecOps Platform
 
-A production-oriented DevSecOps platform demonstrating secure CI/CD, GitOps, container orchestration, Infrastructure as Code, configuration management, security scanning, observability, centralized logging, and production troubleshooting.
+A production-oriented DevSecOps portfolio project demonstrating secure application delivery, containerization, Kubernetes operations, infrastructure automation, security gates, GitOps, observability, and production troubleshooting.
+
+> **Implementation status:** built incrementally. This README distinguishes verified implementation from planned platform capabilities.
 
 ## Project Overview
 
 SecureOps simulates an enterprise financial-services environment where application teams need a standardized and secure software delivery platform.
 
-The platform is designed to address common enterprise DevOps challenges:
+The engineering goal is to build a delivery path that is:
 
-- Manual and inconsistent deployments
-- Security vulnerabilities reaching deployment stages
-- Lack of standardized CI/CD pipelines
-- Infrastructure provisioning inconsistencies
-- Configuration drift
-- Limited application and infrastructure observability
-- Centralized logging requirements
-- Production troubleshooting and rollback
-- Auditability and controlled deployment processes
+- repeatable
+- testable
+- security-aware
+- observable
+- recoverable
+- suitable for Kubernetes/OpenShift environments
 
-The project brings these capabilities together into a single DevSecOps workflow running on Kubernetes/OpenShift.
+## Current Implementation
 
-## Architecture
+The following capabilities are implemented and tested today:
+
+| Capability | Status | Evidence |
+|---|---|---|
+| FastAPI payment service | Implemented | `applications/payment-api` |
+| Automated API tests | Implemented | pytest test suite |
+| Docker containerization | Implemented | `applications/payment-api/Dockerfile` |
+| Container security scanning | Implemented | Trivy image scanning |
+| Kubernetes Deployment | Implemented | 2 replicas on Kind |
+| Kubernetes Service | Implemented | ClusterIP service |
+| Health/readiness probes | Implemented | `/health`, `/ready` |
+| Resource requests/limits | Implemented | Deployment manifest |
+| Prometheus metrics | Implemented | `/metrics/` |
+| Kustomize base | Implemented | `kubernetes/base` |
+| OpenShift deployment | Planned | Next platform stage |
+| Jenkins CI | Planned | CI/CD stage |
+| Tekton | Planned | CI/CD stage |
+| SonarQube SAST | Planned | Security stage |
+| Dependency-Track / SBOM | Planned | Security stage |
+| Argo CD GitOps | Planned | Delivery stage |
+| Terraform AWS infrastructure | Planned | Infrastructure stage |
+| Ansible configuration management | Planned | Automation stage |
+| Grafana / Alertmanager | Planned | Observability stage |
+| Centralized ELK logging | Planned | Logging stage |
+
+## Architecture Target
+
+The target platform architecture is:
 
 ```text
 Developer
@@ -32,12 +58,9 @@ GitHub
 Jenkins / Tekton
     |
     +--> Unit Tests
-    |
     +--> SonarQube (SAST)
-    |
-    +--> Dependency-Track (SCA / SBOM)
-    |
-    +--> Trivy (Container Security)
+    +--> Dependency-Track / SBOM
+    +--> Trivy
     |
     v
 Docker Build
@@ -46,7 +69,7 @@ Docker Build
 Container Registry
     |
     v
-GitOps Repository
+GitOps
     |
     v
 Argo CD
@@ -62,112 +85,166 @@ OpenShift / Kubernetes
     +--> Grafana
     +--> Alertmanager
     |
-    +--> Fluent Bit
-            |
-            v
-        Logstash
-            |
-            v
-      Elasticsearch
-            |
-            v
-         Kibana
+    +--> Fluent Bit -> Logstash -> Elasticsearch -> Kibana
 
+Terraform -> AWS infrastructure
+Ansible  -> Linux configuration and hardening
+```
 
-Infrastructure provisioning and configuration management are handled separately through Terraform and Ansible.
+> The architecture above is the **target design**. Individual components are marked implemented only after they are built and verified.
+
+## Implemented Application: payment-api
+
+The first application is a small FastAPI service designed to exercise the platform delivery path.
+
+### Endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `/` | Service status |
+| `/health` | Liveness health check |
+| `/ready` | Readiness check |
+| `/metrics/` | Prometheus metrics |
+
+Example service response:
+
+```json
+{"service":"payment-api","status":"running"}
+```
+
+### Application structure
 
 ```text
-Terraform
+applications/payment-api/
+├── app/
+│   ├── __init__.py
+│   └── main.py
+├── tests/
+│   └── test_api.py
+├── Dockerfile
+├── pytest.ini
+├── requirements.txt
+├── requirements-dev.txt
+└── sonar-project.properties
+```
+
+## Kubernetes
+
+The payment API is deployed to a local Kind cluster with:
+
+- 2 replicas
+- ClusterIP Service
+- CPU and memory requests/limits
+- HTTP readiness probe
+- HTTP liveness probe
+- Prometheus scrape annotations
+- Kustomize-managed base manifests
+
+Verified deployment flow:
+
+```text
+Docker Image
     |
     v
-AWS Infrastructure
+Kind Cluster
     |
-    +--> VPC
-    +--> Subnets
-    +--> Security Groups
-    +--> IAM
-    +--> EC2
-
-Ansible
+    v
+Deployment
     |
-    +--> Linux Configuration
-    +--> Docker
-    +--> Monitoring Agents
-    +--> Security Hardening
+    +--> Pod
+    +--> Pod
+    |
+    v
+ClusterIP Service
+    |
+    v
+Application
+```
 
-## Core Capabilities
+## Security Engineering
 
-### CI/CD
+Container images are scanned with Trivy as part of the development workflow.
 
-- Jenkins pipeline automation
-- Tekton Kubernetes-native pipelines
-- Automated unit testing
-- Security quality gates
-- Container image build and publishing
-- Deployment automation
+The project treats security scanning as an engineering gate rather than a documentation checkbox.
 
-### DevSecOps
+Important distinction:
 
-- SonarQube SAST
-- Dependency-Track software composition analysis
-- CycloneDX SBOM generation
-- Trivy container vulnerability scanning
-- Security policy enforcement
-- Secrets protection
-- Deployment security controls
+- **0 OS HIGH/CRITICAL findings** were observed for the verified `payment-api:0.3.0` image scan.
+- The same scan reported Python-package/vendor metadata findings.
+- Those findings were investigated rather than hidden or falsely reported as zero vulnerabilities.
 
-### Containers and Orchestration
+This project intentionally documents security findings and their context instead of suppressing them merely to produce a clean badge.
 
-- Docker
-- Kubernetes
-- OpenShift
-- Kubernetes Services
-- ConfigMaps
-- Secrets
-- Probes
-- Resource limits
-- Horizontal Pod Autoscaling
-- Network Policies
-- RBAC
+## Planned DevSecOps Pipeline
 
-### GitOps
+The next implementation stage will establish:
 
-- Argo CD
-- Declarative deployment manifests
-- Environment-specific configuration
-- Drift detection
-- Automated synchronization
-- Self-healing
-- Rollback
+```text
+Git Push
+   |
+   v
+Jenkins / Tekton
+   |
+   +--> Unit Tests
+   +--> SonarQube
+   +--> Dependency-Track / SBOM
+   +--> Trivy
+   |
+   v
+Build & Publish Image
+   |
+   v
+GitOps Update
+   |
+   v
+Argo CD
+   |
+   v
+OpenShift / Kubernetes
+```
 
-### Infrastructure as Code
+A failed quality or security gate should prevent unsafe artifacts from reaching deployment.
 
-- Terraform
-- AWS VPC
-- Subnets
-- Security Groups
+## Planned Infrastructure Automation
+
+### Terraform
+
+Target AWS infrastructure includes:
+
+- VPC
+- subnets
+- security groups
 - IAM
 - EC2
-- Environment separation
 
-### Configuration Management
+### Ansible
 
-- Ansible
-- Linux administration
-- Docker installation and configuration
-- Node Exporter deployment
-- Linux hardening
+Target configuration-management responsibilities include:
 
-### Observability
+- Linux configuration
+- Docker installation/configuration
+- Node Exporter
+- security hardening
+- operational configuration
 
-- Prometheus metrics
-- Grafana dashboards
-- Alertmanager notifications
-- Application health monitoring
-- Infrastructure monitoring
-- Kubernetes monitoring
+These components will be marked implemented only after testing.
 
-### Centralized Logging
+## Planned Observability and Logging
+
+### Metrics and alerting
+
+```text
+Application / Kubernetes
+        |
+        v
+   Prometheus
+        |
+        +--> Grafana
+        |
+        +--> Alertmanager
+```
+
+### Centralized logging
 
 ```text
 Application Logs
@@ -185,179 +262,113 @@ Elasticsearch
   Kibana
 ```
 
-### Automation
-
-- Bash operational scripts
-- Python automation
-- Health checks
-- Deployment validation
-- Incident debugging
-- Rollback automation
-- Image policy validation
-
-## Applications
-
-SecureOps contains three sample microservices:
-
-| Application | Purpose |
-|---|---|
-| payment-api | Simulates payment processing |
-| order-api | Simulates order management |
-| notification-api | Simulates notification delivery |
-
-Each application is designed to expose:
-
-- Health endpoint
-- Readiness endpoint
-- Prometheus metrics
-- Application API
-- Container image
-- Automated tests
-
-## Environments
-
-The platform models three deployment environments:
-
-```text
-Development
-     |
-     v
-Staging
-     |
-     v
-Production
-```
-
-Each environment uses controlled configuration and deployment policies.
-## Security Gates
-
-The CI/CD workflow is designed around security gates:
-
-```text
-Source Code
-    |
-    v
-Unit Tests
-    |
-    v
-SonarQube
-    |
-    v
-Dependency-Track / SBOM
-    |
-    v
-Docker Build
-    |
-    v
-Trivy Scan
-    |
-    v
-Container Registry
-    |
-    v
-GitOps
-    |
-    v
-Argo CD
-    |
-    v
-OpenShift
-```
-
-A failed security gate prevents the pipeline from progressing to the deployment stage.
-
 ## Production Troubleshooting Scenarios
 
-The project intentionally demonstrates real-world operational incidents:
+The project will document practical incident-response scenarios such as:
 
 1. CrashLoopBackOff
-2. Security gate failure
-3. High CPU / memory utilization
-4. Argo CD configuration drift
-5. Failed deployment and rollback
+2. failed security gate
+3. high CPU or memory utilization
+4. GitOps configuration drift
+5. failed deployment and rollback
 
-Each incident includes investigation steps, commands, evidence, root cause, remediation, and preventive actions.
+Each scenario is intended to include:
+
+- symptoms
+- investigation commands
+- evidence
+- root cause
+- remediation
+- preventive controls
+
 ## Technology Stack
 
 | Area | Technologies |
 |---|---|
-| Version Control | Git, GitHub |
-| CI/CD | Jenkins, Tekton |
-| GitOps | Argo CD |
+| Version control | Git, GitHub |
+| Application | Python, FastAPI |
+| Testing | pytest |
 | Containers | Docker |
 | Orchestration | Kubernetes, OpenShift |
+| Local platform | Kind |
+| CI/CD | Jenkins, Tekton |
+| GitOps | Argo CD |
 | Cloud | AWS |
 | IaC | Terraform |
-| Configuration Management | Ansible |
+| Configuration management | Ansible |
 | SAST | SonarQube |
 | SCA / SBOM | Dependency-Track, CycloneDX |
-| Container Security | Trivy |
+| Container security | Trivy |
 | Monitoring | Prometheus, Grafana |
 | Alerting | Alertmanager |
 | Logging | Fluent Bit, Logstash, Elasticsearch, Kibana |
+| Operating system | Linux |
 | Automation | Python, Bash |
-| OS | Linux |
 
 ## Repository Structure
 
 ```text
 secureops-devsecops-platform/
-|-- applications/
-|-- ansible/
-|-- argocd/
-|-- ci/
-|-- docs/
-|-- gitops/
-|-- incidents/
-|-- kubernetes/
-|-- logging/
-|-- observability/
-|-- openshift/
-|-- scripts/
-|-- security/
-|-- terraform/
-|-- .github/
-|-- .editorconfig
-|-- .gitignore
-|-- LICENSE
-`-- README.md
+├── applications/
+├── ansible/
+├── argocd/
+├── ci/
+├── docs/
+├── gitops/
+├── incidents/
+├── kubernetes/
+├── logging/
+├── observability/
+├── openshift/
+├── scripts/
+├── security/
+├── terraform/
+├── .github/
+├── .editorconfig
+├── .gitignore
+├── LICENSE
+└── README.md
 ```
 
 ## Implementation Roadmap
 
-The platform will be implemented incrementally:
+### Completed
 
-- [ ] Application microservices
-- [ ] Docker containerization
-- [ ] Kubernetes manifests
-- [ ] OpenShift deployment
+- [x] Payment API
+- [x] Automated API tests
+- [x] Docker containerization
+- [x] Trivy image scanning and finding investigation
+- [x] Kubernetes Deployment
+- [x] Kubernetes Service
+- [x] Health/readiness probes
+- [x] Resource requests/limits
+- [x] Prometheus metrics
+- [x] Kustomize base
+
+### Next
+
 - [ ] Jenkins CI pipeline
 - [ ] Tekton pipeline
-- [ ] SonarQube integration
-- [ ] Dependency-Track and SBOM
-- [ ] Trivy security scanning
-- [ ] Argo CD GitOps deployment
+- [ ] SonarQube SAST gate
+- [ ] Dependency-Track / CycloneDX SBOM
+- [ ] OpenShift deployment
+- [ ] Argo CD GitOps
 - [ ] Terraform AWS infrastructure
 - [ ] Ansible configuration management
-- [ ] Prometheus monitoring
 - [ ] Grafana dashboards
 - [ ] Alertmanager
 - [ ] Centralized logging with ELK
-- [ ] Production troubleshooting scenarios
-- [ ] Automated validation and operational scripts
-- [ ] Documentation and interview guide
-## DevOps Engineering Objectives
+- [ ] Production troubleshooting runbooks
+- [ ] Operational automation scripts
+- [ ] Interview/project documentation
 
-This project demonstrates practical experience across the complete DevOps lifecycle:
+## Engineering Principles
 
 ```text
 Plan
  |
  v
 Code
- |
- v
-Build
  |
  v
 Test
@@ -381,81 +392,16 @@ Troubleshoot
 Improve
 ```
 
-The goal is not only to deploy applications, but to demonstrate how an enterprise DevOps engineer designs, secures, operates, monitors, and troubleshoots a production-oriented platform.
-
-## Documentation
-
-Detailed documentation will cover:
-
-- Architecture
-- CI/CD
-- GitOps
-- OpenShift
-- AWS
-- Terraform
-- Ansible
-- Security
-- Observability
-- Troubleshooting
-- Production incidents
-- Interview questions and project explanation
+The objective is not to list DevOps tools. It is to demonstrate how those tools are used to build, secure, deploy, observe, troubleshoot, and improve a production-oriented platform.
 
 ## Project Status
 
-This project is under active development.
+**Active development**
 
-Individual components will be marked as implemented only after they are tested and verified.
+The repository is intentionally implemented in verifiable stages. Documentation is updated as capabilities move from planned to tested implementation.
 
 ## Author
 
 **Gaurav Singh Ghodage**
 
 DevOps / DevSecOps Engineering Portfolio Project
-## Security Gates
-
-The CI/CD workflow is designed around security gates:
-
-```text
-Source Code
-    |
-    v
-Unit Tests
-    |
-    v
-SonarQube
-    |
-    v
-Dependency-Track / SBOM
-    |
-    v
-Docker Build
-    |
-    v
-Trivy Scan
-    |
-    v
-Container Registry
-    |
-    v
-GitOps
-    |
-    v
-Argo CD
-    |
-    v
-OpenShift
-```
-
-A failed security gate prevents the pipeline from progressing to the deployment stage.
-
-## Production Troubleshooting Scenarios
-
-The project intentionally demonstrates real-world operational incidents:
-
-1. CrashLoopBackOff
-2. Security gate failure
-3. High CPU / memory utilization
-4. Argo CD configuration drift
-5. Failed deployment and rollback
-
-Each incident includes investigation steps, commands, evidence, root cause, remediation, and preventive actions.
