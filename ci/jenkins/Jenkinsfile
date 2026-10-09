@@ -39,11 +39,22 @@ pipeline {
                 }
             }
         }
+
+        stage('Code Quality Gate') {
+            steps {
+                dir('applications/payment-api') {
+                    sh '''
+                        .venv/bin/ruff --version
+                        .venv/bin/ruff check app tests
+                    '''
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo 'SecureOps CI verification and API tests completed successfully'
+            echo 'SecureOps CI, API tests, and code quality gate completed successfully'
         }
         failure {
             echo 'SecureOps CI failed; inspect the stage logs'
