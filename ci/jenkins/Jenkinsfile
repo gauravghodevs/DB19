@@ -13,7 +13,9 @@ pipeline {
                 sh 'git --version'
                 sh 'test -f applications/payment-api/app/main.py'
                 sh 'test -f applications/payment-api/requirements.txt'
-                echo 'Payment API source files verified'
+                sh 'test -f applications/payment-api/requirements-dev.txt'
+                sh 'test -f applications/payment-api/tests/test_api.py'
+                echo 'Payment API source and test files verified'
             }
         }
 
@@ -23,14 +25,33 @@ pipeline {
                 sh 'git status --short || true'
             }
         }
+
+        stage('Automated API Tests') {
+            steps {
+                dir('applications/payment-api') {
+                    sh '''
+                        python3 --version
+                        python3 -m venv .venv
+                        .venv/bin/python -m pip install --upgrade pip
+                        .venv/bin/python -m pip install -r requirements-dev.txt
+                        .venv/bin/python -m pytest -v
+                    '''
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo 'SecureOps CI verification completed successfully'
+            echo 'SecureOps CI verification and API tests completed successfully'
         }
         failure {
-            echo 'SecureOps CI verification failed; inspect the stage logs'
+            echo 'SecureOps CI failed; inspect the stage logs'
+        }
+        always {
+            dir('applications/payment-api') {
+                sh 'rm -rf .venv'
+            }
         }
     }
 }
