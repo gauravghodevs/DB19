@@ -1,0 +1,36 @@
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    stages {
+        stage('Checkout Verification') {
+            steps {
+                echo 'SecureOps CI pipeline started'
+                sh 'git --version'
+                sh 'test -f applications/payment-api/app/main.py'
+                sh 'test -f applications/payment-api/requirements.txt'
+                echo 'Payment API source files verified'
+            }
+        }
+
+        stage('Workspace Verification') {
+            steps {
+                sh 'pwd'
+                sh 'git status --short || true'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'SecureOps CI verification completed successfully'
+        }
+        failure {
+            echo 'SecureOps CI verification failed; inspect the stage logs'
+        }
+    }
+}
