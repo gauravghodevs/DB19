@@ -56,3 +56,4 @@ temp/
 venv/
 __pycache__/
 *.py[cod]
+jenkins-home-backup.tar.gz
