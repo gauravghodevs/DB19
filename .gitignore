@@ -57,3 +57,18 @@ venv/
 __pycache__/
 *.py[cod]
 jenkins-home-backup.tar.gz
+
+# Generated security scan reports
+reports/*-offline.json
+reports/*-fresh-sbom.json
+reports/*-no-vendor-sbom.json
+reports/*-sbom.json
+
+# Generated security scan reports
+reports/*-offline.json
+reports/*-fresh-sbom.json
+reports/*-no-vendor-sbom.json
+reports/*-sbom.json
+
+# Generated Trivy scan reports and SBOM diagnostics
+reports/*.json
