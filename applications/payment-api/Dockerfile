@@ -1,13 +1,39 @@
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY applications/payment-api/requirements.txt ./requirements.txt
+
+RUN python -m pip install --no-cache-dir \
+    --upgrade "pip==26.2.1" "setuptools==84.0.0" \
+    && python -m pip install --no-cache-dir \
+       --prefix=/install -r requirements.txt
+
 FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN python -m pip install --no-cache-dir --upgrade "pip==26.2.1" "setuptools==84.0.0" \
-    && python -m pip install --no-cache-dir -r requirements.txt
+COPY --from=builder /install /usr/local
 
-COPY app ./app
+RUN python -m pip install --no-cache-dir \
+    --upgrade "pip==26.2.1" "setuptools==84.0.0"
+
+COPY applications/payment-api/app ./app
+
+RUN useradd --system --uid 10001 --create-home appuser \
+    && chown -R appuser:appuser /app
+
+USER 10001:10001
 
 EXPOSE 8000
 
