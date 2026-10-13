@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: payment-api
-          image: secureops/payment-api:0.3.0
+          image: secureops-payment-api:0.1.6
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
