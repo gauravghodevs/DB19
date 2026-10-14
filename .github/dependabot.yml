@@ -1,0 +1,30 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/applications/payment-api"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      python-runtime:
+        patterns:
+          - "fastapi"
+          - "prometheus-client"
+          - "uvicorn"
+      python-dev:
+        patterns:
+          - "pytest"
+          - "httpx"
+          - "ruff"
+
+  - package-ecosystem: "docker"
+    directory: "/applications/payment-api"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
