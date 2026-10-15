@@ -40,3 +40,21 @@ jobs:
 
       - name: Check Python style
         run: python -m ruff check app tests
+
+  docker-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build payment API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: applications/payment-api/Dockerfile
+          push: false
+          tags: secureops-payment-api:ci
