@@ -54,6 +54,7 @@ def test_request_counter_increments():
 
     assert after > before
 
+
 def test_response_counter_tracks_status_codes():
     response = client.get("/health")
     assert response.status_code == 200
@@ -61,3 +62,12 @@ def test_response_counter_tracks_status_codes():
     metrics_response = client.get("/metrics")
     assert metrics_response.status_code == 200
     assert 'payment_api_responses_total{status_code="200"}' in metrics_response.text
+
+
+def test_not_found_responses_are_counted():
+    response = client.get("/route-that-does-not-exist")
+    assert response.status_code == 404
+
+    metrics_response = client.get("/metrics")
+    assert metrics_response.status_code == 200
+    assert 'payment_api_responses_total{status_code="404"}' in metrics_response.text
