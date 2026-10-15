@@ -8,11 +8,20 @@ REQUEST_COUNT = Counter(
     "Total number of HTTP requests handled by the payment API.",
 )
 
+HTTP_RESPONSES = Counter(
+    "payment_api_responses_total",
+    "Total number of HTTP responses returned by the payment API.",
+    ["status_code"],
+)
+
 
 @app.middleware("http")
 async def count_requests(request, call_next):
-    response = await call_next(request)
     REQUEST_COUNT.inc()
+
+    response = await call_next(request)
+    HTTP_RESPONSES.labels(status_code=str(response.status_code)).inc()
+
     return response
 
 

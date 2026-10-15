@@ -53,3 +53,11 @@ def test_request_counter_increments():
     after = get_request_count(after_response.text)
 
     assert after > before
+
+def test_response_counter_tracks_status_codes():
+    response = client.get("/health")
+    assert response.status_code == 200
+
+    metrics_response = client.get("/metrics")
+    assert metrics_response.status_code == 200
+    assert 'payment_api_responses_total{status_code="200"}' in metrics_response.text
