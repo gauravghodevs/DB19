@@ -161,6 +161,18 @@ ClusterIP Service
 Application
 ```
 
+### Runtime Container Hardening
+
+The `payment-api` Deployment applies Kubernetes container security controls:
+
+- `runAsNonRoot: true` — prevents the container from running as root.
+- `runAsUser: 10001` — runs the application with the non-root UID configured in the image.
+- `allowPrivilegeEscalation: false` — disables privilege escalation.
+- `capabilities.drop: [ALL]` — drops all Linux capabilities from the container.
+- `seccompProfile.type: RuntimeDefault` — uses the container runtime's default seccomp profile.
+
+**Runtime verification:** The rollout completed successfully with 2/2 replicas ready. Both new pods reported zero restarts at verification time. The `/health`, `/ready`, and `/metrics/` endpoints each returned HTTP 200.
+
 ## Security Engineering
 
 Container images are scanned with Trivy as part of the development workflow.
