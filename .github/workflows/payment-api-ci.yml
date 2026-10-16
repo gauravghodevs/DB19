@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths:
       - "applications/payment-api/**"
+      - "kubernetes/**"
       - ".github/workflows/payment-api-ci.yml"
   pull_request:
     paths:
       - "applications/payment-api/**"
+      - "kubernetes/**"
       - ".github/workflows/payment-api-ci.yml"
 
 permissions:
@@ -41,7 +43,27 @@ jobs:
       - name: Check Python style
         run: python -m ruff check app tests
 
-  docker-build:
+  validate-kubernetes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Render Kustomize manifests
+        run: kubectl kustomize kubernetes/base > rendered-manifests.yaml
+
+      - name: Validate rendered Kubernetes schemas
+        run: |
+          docker run --rm -i \
+            ghcr.io/yannh/kubeconform:v0.6.7 \
+            -strict -summary - \
+            < rendered-manifests.yaml
+
+  docker-build-and-scan:
     runs-on: ubuntu-latest
 
     steps:
@@ -57,4 +79,26 @@ jobs:
           context: .
           file: applications/payment-api/Dockerfile
           push: false
+          load: true
           tags: secureops-payment-api:ci
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: secureops-payment-api:ci
+          format: table
+          output: trivy-image.txt
+          vuln-type: os,library
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: payment-api-trivy-report
+          path: trivy-image.txt
+          if-no-files-found: ignore
+          retention-days: 14
