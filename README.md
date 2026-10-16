@@ -293,6 +293,11 @@ Each scenario is intended to include:
 - remediation
 - preventive controls
 
+### Documented Incident Runbooks
+
+- [Kubernetes Deployment rollback](docs/incidents/kubernetes-deployment-rollback.md)
+- [Payment API Kind node reboot incident](docs/incidents/payment-api-kind-node-reboot.md)
+
 ## Technology Stack
 
 | Area | Technologies |
