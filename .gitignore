@@ -72,3 +72,6 @@ reports/*-sbom.json
 
 # Generated Trivy scan reports and SBOM diagnostics
 reports/*.json
+
+# Ruff cache
+.ruff_cache/
