@@ -22,6 +22,10 @@ HTTP_RESPONSES = Counter(
 
 @app.middleware("http")
 async def count_requests(request, call_next):
+    # Prometheus polling is telemetry collection, not application traffic.
+    if request.url.path.rstrip("/") == "/metrics":
+        return await call_next(request)
+
     REQUEST_COUNT.inc()
 
     response = await call_next(request)
