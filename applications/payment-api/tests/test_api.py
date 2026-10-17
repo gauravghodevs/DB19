@@ -35,29 +35,36 @@ def test_ready():
 
 
 def test_metrics():
-    response = client.get("/metrics")
+    response = client.get("/metrics", follow_redirects=False)
+
     assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/plain")
     assert "payment_api_requests_total" in response.text
+    assert "payment_api_responses_total" in response.text
 
 
 def test_request_counter_increments():
-    before_response = client.get("/metrics")
+    before_response = client.get("/metrics", follow_redirects=False)
     assert before_response.status_code == 200
     before = get_request_count(before_response.text)
 
     response = client.get("/health")
     assert response.status_code == 200
 
-    after_response = client.get("/metrics")
+    after_response = client.get("/metrics", follow_redirects=False)
     assert after_response.status_code == 200
     after = get_request_count(after_response.text)
 
     assert after > before
 
+
 def test_response_counter_tracks_status_codes():
     response = client.get("/health")
     assert response.status_code == 200
 
-    metrics_response = client.get("/metrics")
+    metrics_response = client.get("/metrics", follow_redirects=False)
     assert metrics_response.status_code == 200
-    assert 'payment_api_responses_total{status_code="200"}' in metrics_response.text
+    assert (
+        'payment_api_responses_total{status_code="200"}'
+        in metrics_response.text
+    )
