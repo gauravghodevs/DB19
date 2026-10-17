@@ -75,3 +75,6 @@ reports/*.json
 
 # Ruff cache
 .ruff_cache/
+
+# Python virtual environments
+.venv*/
