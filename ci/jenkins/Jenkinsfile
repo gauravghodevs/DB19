@@ -4,25 +4,56 @@ pipeline {
     options {
         timestamps()
         disableConcurrentBuilds()
+        skipDefaultCheckout(true)
     }
 
     stages {
-        stage('Checkout Verification') {
+        stage('Checkout and Environment Verification') {
             steps {
-                echo 'SecureOps CI pipeline started'
-                sh 'git --version'
-                sh 'test -f applications/payment-api/app/main.py'
-                sh 'test -f applications/payment-api/requirements.txt'
-                sh 'test -f applications/payment-api/requirements-dev.txt'
-                sh 'test -f applications/payment-api/tests/test_api.py'
-                echo 'Payment API source and test files verified'
+                checkout scm
+
+                sh '''
+                    set -eu
+
+                    echo "===== Runtime versions ====="
+                    git --version
+                    python3 --version
+                    bash --version | head -1
+
+                    echo
+                    echo "===== Verify required files ====="
+                    test -f applications/payment-api/app/main.py
+                    test -f applications/payment-api/requirements.txt
+                    test -f applications/payment-api/requirements-dev.txt
+                    test -f applications/payment-api/tests/test_api.py
+                    test -f kubernetes/base/kustomization.yaml
+                    test -f scripts/quality-gate.sh
+                    test -f scripts/verify-payment-api.sh
+                    test -f scripts/validate-repo.sh
+
+                    echo
+                    echo "===== Checked out revision ====="
+                    git rev-parse --short HEAD
+                    git status --short
+                '''
             }
         }
 
-        stage('Workspace Verification') {
+        stage('Shell Syntax Validation') {
             steps {
-                sh 'pwd'
-                sh 'git status --short || true'
+                sh '''
+                    set -eu
+
+                    echo "Checking shell script syntax..."
+
+                    find scripts -type f -name '*.sh' -print |
+                    while IFS= read -r script; do
+                        bash -n "$script"
+                        echo "PASS: $script"
+                    done
+
+                    echo "Shell syntax validation passed."
+                '''
             }
         }
 
@@ -30,10 +61,12 @@ pipeline {
             steps {
                 dir('applications/payment-api') {
                     sh '''
+                        set -eu
+
                         python3 --version
                         python3 -m venv .venv
-                        .venv/bin/python -m pip install --upgrade pip
-                        .venv/bin/python -m pip install -r requirements-dev.txt
+                        .venv/bin/python -m pip install \
+                            -r requirements-dev.txt
                         .venv/bin/python -m pytest -v
                     '''
                 }
@@ -44,9 +77,41 @@ pipeline {
             steps {
                 dir('applications/payment-api') {
                     sh '''
-                        .venv/bin/ruff --version
-                        .venv/bin/ruff check app tests
+                        set -eu
+
+                        .venv/bin/python -m ruff --version
+                        .venv/bin/python -m ruff check app tests
                     '''
+                }
+            }
+        }
+
+        stage('Kubernetes Manifest Validation') {
+            steps {
+                script {
+                    if (sh(
+                        script: 'command -v kubectl >/dev/null 2>&1',
+                        returnStatus: true
+                    ) == 0) {
+                        sh '''
+                            set -eu
+
+                            kubectl kustomize kubernetes/base \
+                                > secureops-rendered-manifests.yaml
+
+                            grep -q '^kind: Deployment$' \
+                                secureops-rendered-manifests.yaml
+                            grep -q '^kind: Service$' \
+                                secureops-rendered-manifests.yaml
+                            grep -q 'name: payment-api' \
+                                secureops-rendered-manifests.yaml
+
+                            echo "Kustomize rendering and resource checks passed."
+                        '''
+                    } else {
+                        echo 'SKIPPED: kubectl is not installed on this Jenkins agent.'
+                        echo 'GitHub Actions remains responsible for strict Kubernetes schema validation.'
+                    }
                 }
             }
         }
@@ -54,15 +119,22 @@ pipeline {
 
     post {
         success {
-            echo 'SecureOps CI, API tests, and code quality gate completed successfully'
+            echo 'SecureOps Jenkins CI completed successfully.'
         }
+
         failure {
-            echo 'SecureOps CI failed; inspect the stage logs'
+            echo 'SecureOps Jenkins CI failed. Review the failing stage logs.'
         }
+
         always {
             dir('applications/payment-api') {
-                sh 'rm -rf .venv'
+                sh '''
+                    if [ -d .venv ]; then
+                        rm -rf .venv
+                    fi
+                '''
             }
+            sh 'rm -f secureops-rendered-manifests.yaml'
         }
     }
 }
