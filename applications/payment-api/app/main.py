@@ -1,5 +1,10 @@
-from fastapi import FastAPI
-from prometheus_client import Counter, make_asgi_app
+from fastapi import FastAPI, Response
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    Counter,
+    REGISTRY,
+    generate_latest,
+)
 
 app = FastAPI(title="SecureOps Payment API", version="0.1.0")
 
@@ -40,5 +45,9 @@ def ready():
     return {"status": "ready"}
 
 
-metrics_app = make_asgi_app()
-app.mount("/metrics", metrics_app)
+@app.get("/metrics", include_in_schema=False)
+def metrics():
+    return Response(
+        content=generate_latest(REGISTRY),
+        headers={"Content-Type": CONTENT_TYPE_LATEST},
+    )
