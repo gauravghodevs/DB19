@@ -25,8 +25,8 @@ RUN apt-get update \
 
 COPY --from=builder /install /usr/local
 
-RUN python -m pip install --no-cache-dir \
-    --upgrade "pip==26.2.1" "setuptools==84.0.0"
+RUN python -m pip uninstall -y pip setuptools wheel
+
 
 COPY applications/payment-api/app ./app
 

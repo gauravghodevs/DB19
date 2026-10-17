@@ -90,7 +90,7 @@ jobs:
           format: table
           output: trivy-image.txt
           vuln-type: os,library
-          severity: CRITICAL
+          severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
 
