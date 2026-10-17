@@ -6,11 +6,13 @@ on:
     paths:
       - "applications/payment-api/**"
       - "kubernetes/**"
+      - "scripts/**"
       - ".github/workflows/payment-api-ci.yml"
   pull_request:
     paths:
       - "applications/payment-api/**"
       - "kubernetes/**"
+      - "scripts/**"
       - ".github/workflows/payment-api-ci.yml"
 
 permissions:
@@ -42,6 +44,46 @@ jobs:
 
       - name: Check Python style
         run: python -m ruff check app tests
+
+  shell-and-manifest-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shellcheck
+
+      - name: Validate Bash syntax
+        shell: bash
+        run: |
+          while IFS= read -r -d '' script; do
+            echo "Checking: $script"
+            bash -n "$script"
+          done < <(find scripts -type f -name '*.sh' -print0)
+
+      - name: Run ShellCheck
+        run: shellcheck scripts/*.sh
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Render and verify Kubernetes manifests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rendered="$RUNNER_TEMP/secureops-rendered.yaml"
+
+          kubectl kustomize kubernetes/base > "$rendered"
+
+          grep -q '^kind: Deployment$' "$rendered"
+          grep -q '^kind: Service$' "$rendered"
+          grep -q 'name: payment-api' "$rendered"
+
+          echo "Kubernetes rendering and resource checks passed."
 
   validate-kubernetes:
     runs-on: ubuntu-latest
