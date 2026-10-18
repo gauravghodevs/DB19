@@ -16,3 +16,11 @@ data:
             annotations:
               summary: "Payment API is down"
               description: "Prometheus has been unable to scrape the Payment API for more than one minute."
+          - alert: PaymentAPITargetsMissing
+            expr: absent(up{job="kubernetes-services",service="payment-api"})
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Payment API targets are missing"
+              description: "Prometheus cannot find any discovered Payment API targets for more than one minute."
