@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: secureops-payment-api
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/gauravghodevs/DB19.git
+    targetRevision: main
+    path: kubernetes/base
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=false
