@@ -7,12 +7,16 @@ on:
       - "applications/payment-api/**"
       - "kubernetes/**"
       - "scripts/**"
+      - "argocd/**"
+      - "observability/**"
       - ".github/workflows/payment-api-ci.yml"
   pull_request:
     paths:
       - "applications/payment-api/**"
       - "kubernetes/**"
       - "scripts/**"
+      - "argocd/**"
+      - "observability/**"
       - ".github/workflows/payment-api-ci.yml"
 
 permissions:
