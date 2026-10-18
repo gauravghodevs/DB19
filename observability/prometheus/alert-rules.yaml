@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-alert-rules
+  namespace: monitoring
+data:
+  alert-rules.yml: |
+    groups:
+      - name: secureops-payment-api
+        rules:
+          - alert: PaymentAPIDown
+            expr: up{job="kubernetes-services",service="payment-api"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Payment API is down"
+              description: "Prometheus has been unable to scrape the Payment API for more than one minute."
