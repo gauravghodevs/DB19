@@ -107,6 +107,9 @@ jobs:
 
   docker-build-and-scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Check out source
@@ -188,3 +191,25 @@ jobs:
           path: trivy-image.txt
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag scanned image for GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ghcr.io/gauravghodevs/secureops-payment-api
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker tag secureops-payment-api:ci "$IMAGE:$IMAGE_TAG"
+
+      - name: Publish scanned image to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ghcr.io/gauravghodevs/secureops-payment-api
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker push "$IMAGE:$IMAGE_TAG"
