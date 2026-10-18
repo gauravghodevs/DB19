@@ -25,8 +25,8 @@ spec:
                 - ALL
             seccompProfile:
               type: RuntimeDefault
-          image: secureops-payment-api:0.1.9
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/gauravghodevs/secureops-payment-api:52a02d8f31ba180ddd96011dbf0e51a678f39ff1
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8000
