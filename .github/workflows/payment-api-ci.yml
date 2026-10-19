@@ -129,6 +129,7 @@ jobs:
             grep -q "^    path:" "$manifest"
             echo "PASS: $manifest"
           done
+
   docker-build-and-scan:
     runs-on: ubuntu-latest
     permissions:
