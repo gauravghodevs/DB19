@@ -121,8 +121,14 @@ jobs:
           set -Eeuo pipefail
           for manifest in argocd/*-application.yaml; do
             test -f "$manifest"
-            grep -q '^apiVersion: argoproj.io/v1alpha1
-
+            grep -q "^apiVersion: argoproj.io/v1alpha1$" "$manifest"
+            grep -q "^kind: Application$" "$manifest"
+            grep -q "^  source:$" "$manifest"
+            grep -q "^    repoURL: https://github.com/gauravghodevs/DB19.git$" "$manifest"
+            grep -q "^    targetRevision: main$" "$manifest"
+            grep -q "^    path:" "$manifest"
+            echo "PASS: $manifest"
+          done
   docker-build-and-scan:
     runs-on: ubuntu-latest
     permissions:
