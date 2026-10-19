@@ -106,6 +106,7 @@ spec:
               containerPort: 9090
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           resources:
@@ -136,6 +137,8 @@ spec:
               readOnly: true
             - name: data
               mountPath: /prometheus
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: config
           configMap:
@@ -144,6 +147,8 @@ spec:
           configMap:
             name: prometheus-alert-rules
         - name: data
+          emptyDir: {}
+        - name: tmp
           emptyDir: {}
 ---
 apiVersion: v1
