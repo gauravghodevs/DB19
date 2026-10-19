@@ -26,8 +26,8 @@ jobs:
 
       - name: Run alert regression tests
         run: |
-          docker run --rm \
+          docker run --rm --entrypoint /bin/promtool \
             -v "$PWD:/workspace" \
             -w /workspace \
             prom/prometheus:v3.5.0 \
-            promtool test rules tests/observability/alert-tests.yml
+            test rules tests/observability/alert-tests.yml
