@@ -277,6 +277,7 @@ Each scenario is intended to include:
 
 - [Kubernetes Deployment rollback](docs/incidents/kubernetes-deployment-rollback.md)
 - [Payment API Kind node reboot incident](docs/incidents/payment-api-kind-node-reboot.md)
+- [Monitoring stack deployment and verification](docs/operations/monitoring-stack-deployment.md)
 
 ## Technology Stack
 
