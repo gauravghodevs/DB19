@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "kubernetes/**"
+      - "observability/**"
       - ".github/workflows/kubernetes-security.yml"
   pull_request:
     paths:
@@ -18,6 +19,12 @@ jobs:
   trivy-config-scan:
     name: Scan Kubernetes manifests
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        manifest-path:
+          - kubernetes/base
+          - observability
 
     steps:
       - name: Check out repository
@@ -27,7 +34,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
-          scan-ref: kubernetes/base
+          scan-ref: ${{ matrix.manifest-path }}
           severity: HIGH,CRITICAL
           format: table
           exit-code: "1"
