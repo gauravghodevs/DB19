@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Response
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
-    Counter,
     REGISTRY,
+    Counter,
     generate_latest,
 )
 
