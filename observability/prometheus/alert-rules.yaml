@@ -24,10 +24,3 @@ data:
             annotations:
               summary: "Payment API targets are missing"
               description: "Prometheus cannot find any discovered Payment API targets for more than one minute."
-          - alert: SecureOpsLiveDeliveryTest
-            expr: vector(1)
-            labels:
-              severity: test
-            annotations:
-              summary: "SecureOps live alert delivery test"
-              description: "Temporary test verifying Prometheus alert delivery to Alertmanager."
