@@ -1,0 +1,33 @@
+name: Observability Alert Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tests/observability/**"
+      - ".github/workflows/observability-alert-tests.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "tests/observability/**"
+      - ".github/workflows/observability-alert-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  promtool-tests:
+    name: Prometheus alert rule tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run alert regression tests
+        run: |
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            prom/prometheus:v3.5.0 \
+            promtool test rules tests/observability/alert-tests.yml

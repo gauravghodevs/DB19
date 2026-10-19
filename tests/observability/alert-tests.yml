@@ -1,0 +1,23 @@
+rule_files:
+  - alert-test-rules.yml
+
+evaluation_interval: 15s
+
+tests:
+  - name: synthetic alert stays non-firing before its for duration
+    interval: 15s
+    input_series:
+      - series: 'test_metric{source="synthetic-test"}'
+        values: '1+0x8'
+    alert_rule_test:
+      - eval_time: 45s
+        alertname: SecureOpsSyntheticAlert
+        exp_alerts: []
+      - eval_time: 1m
+        alertname: SecureOpsSyntheticAlert
+        exp_alerts:
+          - exp_labels:
+              source: synthetic-test
+              severity: test
+            exp_annotations:
+              summary: "Synthetic alert lifecycle test"
