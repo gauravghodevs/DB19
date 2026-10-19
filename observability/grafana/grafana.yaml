@@ -60,6 +60,7 @@ spec:
               value: "false"
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           resources:
@@ -84,6 +85,8 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/grafana
+            - name: tmp
+              mountPath: /tmp
             - name: datasource
               mountPath: /etc/grafana/provisioning/datasources
               readOnly: true
@@ -95,6 +98,8 @@ spec:
               readOnly: true
       volumes:
         - name: data
+          emptyDir: {}
+        - name: tmp
           emptyDir: {}
         - name: datasource
           configMap:
