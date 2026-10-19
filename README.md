@@ -34,7 +34,7 @@ The following capabilities are implemented and tested today:
 | Prometheus metrics | Implemented | `/metrics/` |
 | Kustomize base | Implemented | `kubernetes/base` |
 | OpenShift deployment | Planned | Next platform stage |
-| Jenkins pipeline | Example present; execution not verified | `ci/jenkins/Jenkinsfile` |
+| Jenkins pipeline | Configured and verified: Build #7 SUCCESS | `ci/jenkins/Jenkinsfile` |
 | Tekton | Planned | CI/CD stage |
 | SonarQube SAST | Planned | Security stage |
 | CycloneDX SBOM generation | Implemented | `.github/workflows/dependency-supply-chain.yml` |
@@ -193,7 +193,7 @@ GitHub Actions workflows are configured for application CI, Kubernetes security,
 
 The application CI workflow includes automated tests and linting, Kubernetes manifest validation, container build and smoke tests, and Trivy image scanning. The dependency supply-chain workflow audits Python dependencies and generates a CycloneDX SBOM.
 
-Additional delivery configuration exists for Jenkins and Argo CD. These files demonstrate integration paths, but their presence alone does not establish that Jenkins jobs ran successfully or that Argo CD is synchronizing a live cluster.
+Additional delivery configuration exists for Jenkins and Argo CD. Jenkins Build #7 completed successfully. Argo CD synchronization has also been verified in the live cluster.
 
 Workflow configuration and execution results are separate evidence. Check the relevant GitHub Actions run before claiming a gate passed.
 
@@ -345,11 +345,11 @@ secureops-devsecops-platform/
 - [x] Jenkins pipeline and Argo CD application configuration files added to the repository
 - [x] Two incident runbooks documented
 
-Pipeline execution must be verified separately. Argo CD synchronization and monitoring deployment have been verified in the running cluster.
+Jenkins Build #7 succeeded. Argo CD synchronization and monitoring deployment have been verified in the running cluster.
 
 ### Remaining work
 
-- [ ] Verify Jenkins pipeline execution and integrate it into the delivery path
+- [ ] Integrate the verified Jenkins pipeline into the delivery path
 - [ ] Add a Tekton pipeline
 - [ ] Configure and verify a SonarQube SAST quality gate
 - [ ] Integrate Dependency-Track, if required beyond SBOM generation
