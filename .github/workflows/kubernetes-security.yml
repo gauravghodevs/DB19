@@ -10,6 +10,7 @@ on:
   pull_request:
     paths:
       - "kubernetes/**"
+      - "observability/**"
       - ".github/workflows/kubernetes-security.yml"
 
 permissions:
