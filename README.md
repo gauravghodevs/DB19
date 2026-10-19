@@ -34,14 +34,14 @@ The following capabilities are implemented and tested today:
 | Prometheus metrics | Implemented | `/metrics/` |
 | Kustomize base | Implemented | `kubernetes/base` |
 | OpenShift deployment | Planned | Next platform stage |
-| Jenkins CI | Planned | CI/CD stage |
+| Jenkins pipeline | Example present; execution not verified | `ci/jenkins/Jenkinsfile` |
 | Tekton | Planned | CI/CD stage |
 | SonarQube SAST | Planned | Security stage |
-| Dependency-Track / SBOM | Planned | Security stage |
-| Argo CD GitOps | Planned | Delivery stage |
+| CycloneDX SBOM generation | Implemented | `.github/workflows/dependency-supply-chain.yml` |
+| Argo CD GitOps | Manifests present; reconciliation not verified | `argocd/` |
 | Terraform AWS infrastructure | Planned | Infrastructure stage |
 | Ansible configuration management | Planned | Automation stage |
-| Grafana / Alertmanager | Planned | Observability stage |
+| Prometheus / Grafana configuration | Present; deployment not verified | `observability/` |
 | Centralized ELK logging | Planned | Logging stage |
 
 ## Architecture Target
@@ -187,35 +187,16 @@ Important distinction:
 
 This project intentionally documents security findings and their context instead of suppressing them merely to produce a clean badge.
 
-## Planned DevSecOps Pipeline
+## Implemented CI and Security Workflows
 
-The next implementation stage will establish:
+GitHub Actions workflows are configured for application CI, Kubernetes security, secret scanning, dependency review, dependency auditing and SBOM generation, and documentation validation.
 
-```text
-Git Push
-   |
-   v
-Jenkins / Tekton
-   |
-   +--> Unit Tests
-   +--> SonarQube
-   +--> Dependency-Track / SBOM
-   +--> Trivy
-   |
-   v
-Build & Publish Image
-   |
-   v
-GitOps Update
-   |
-   v
-Argo CD
-   |
-   v
-OpenShift / Kubernetes
-```
+The application CI workflow includes automated tests and linting, Kubernetes manifest validation, container build and smoke tests, and Trivy image scanning. The dependency supply-chain workflow audits Python dependencies and generates a CycloneDX SBOM.
 
-A failed quality or security gate should prevent unsafe artifacts from reaching deployment.
+Additional delivery configuration exists for Jenkins and Argo CD. These files demonstrate integration paths, but their presence alone does not establish that Jenkins jobs ran successfully or that Argo CD is synchronizing a live cluster.
+
+Workflow configuration and execution results are separate evidence. Check the relevant GitHub Actions run before claiming a gate passed.
+
 
 ## Planned Infrastructure Automation
 
@@ -349,35 +330,35 @@ secureops-devsecops-platform/
 
 ## Implementation Roadmap
 
-### Completed
+### Completed or configured
 
-- [x] Payment API
-- [x] Automated API tests
-- [x] Docker containerization
-- [x] Trivy image scanning and finding investigation
-- [x] Kubernetes Deployment
-- [x] Kubernetes Service
-- [x] Health/readiness probes
-- [x] Resource requests/limits
-- [x] Prometheus metrics
-- [x] Kustomize base
+- [x] FastAPI payment API and automated API tests
+- [x] Docker containerization and non-root runtime hardening
+- [x] Trivy image scanning and security finding investigation
+- [x] Kubernetes Deployment, Service, health/readiness probes, and resource controls
+- [x] Prometheus application metrics and Kustomize base
+- [x] GitHub Actions workflows for application CI, Kubernetes security, secret scanning, dependency review, dependency audit/SBOM, and documentation validation
+- [x] CycloneDX SBOM generation and Python dependency audit workflow
+- [x] Prometheus/Grafana configuration, dashboard definition, and alert rules
+- [x] Jenkins pipeline and Argo CD application configuration files added to the repository
+- [x] Two incident runbooks documented
 
-### Next
+Configuration being present does not by itself prove a successful pipeline run, live Argo CD synchronization, or a deployed monitoring stack. Verify execution evidence separately.
 
-- [ ] Jenkins CI pipeline
-- [ ] Tekton pipeline
-- [ ] SonarQube SAST gate
-- [ ] Dependency-Track / CycloneDX SBOM
-- [ ] OpenShift deployment
-- [ ] Argo CD GitOps
-- [ ] Terraform AWS infrastructure
-- [ ] Ansible configuration management
-- [ ] Grafana dashboards
-- [ ] Alertmanager
-- [ ] Centralized logging with ELK
-- [ ] Production troubleshooting runbooks
-- [ ] Operational automation scripts
-- [ ] Interview/project documentation
+### Remaining work
+
+- [ ] Verify Jenkins pipeline execution and integrate it into the delivery path
+- [ ] Add a Tekton pipeline
+- [ ] Configure and verify a SonarQube SAST quality gate
+- [ ] Integrate Dependency-Track, if required beyond SBOM generation
+- [ ] Verify Argo CD synchronization against a live cluster
+- [ ] Deploy and validate the Prometheus/Grafana stack and alert delivery
+- [ ] Deploy to OpenShift
+- [ ] Implement and test Terraform AWS infrastructure
+- [ ] Implement and test Ansible configuration management
+- [ ] Implement centralized logging with ELK
+- [ ] Expand incident runbooks and operational automation
+- [ ] Add final architecture, validation evidence, and interview documentation
 
 ## Engineering Principles
 
