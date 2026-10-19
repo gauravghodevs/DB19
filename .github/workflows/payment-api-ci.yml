@@ -99,15 +99,586 @@ jobs:
       - name: Set up kubectl
         uses: azure/setup-kubectl@v4
 
-      - name: Render Kustomize manifests
-        run: kubectl kustomize kubernetes/base > rendered-manifests.yaml
+      - name: Render application and observability manifests
+        run: |
+          set -eu
+          kubectl kustomize kubernetes/base > rendered-payment-api.yaml
+          kubectl kustomize observability > rendered-observability.yaml
 
       - name: Validate rendered Kubernetes schemas
         run: |
-          docker run --rm -i \
-            ghcr.io/yannh/kubeconform:v0.6.7 \
-            -strict -summary - \
-            < rendered-manifests.yaml
+          set -eu
+          for manifest in rendered-payment-api.yaml rendered-observability.yaml; do
+            echo "Validating $manifest"
+            docker run --rm -i \
+              ghcr.io/yannh/kubeconform:v0.6.7 \
+              -strict -summary - < "$manifest"
+          done
+
+      - name: Verify Argo CD Application definitions
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for manifest in argocd/*-application.yaml; do
+            test -f "$manifest"
+            grep -q '^apiVersion: argoproj.io/v1alpha1
+
+  docker-build-and-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build payment API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: applications/payment-api/Dockerfile
+          push: false
+          load: true
+          tags: secureops-payment-api:ci
+
+      - name: Smoke-test container and verify non-root user
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          container_name=payment-api-smoke
+
+          cleanup() {
+            docker logs "$container_name" 2>/dev/null || true
+            docker rm -f "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run -d \
+            --name "$container_name" \
+            -p 127.0.0.1:8000:8000 \
+            secureops-payment-api:ci
+
+          runtime_user="$(docker inspect \
+            --format '{{.Config.User}}' "$container_name")"
+
+          test "$runtime_user" = "10001:10001"
+          echo "PASS: container is configured to run as non-root."
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent \
+              http://127.0.0.1:8000/health >/dev/null; then
+              echo "PASS: payment API health endpoint responded."
+              exit 0
+            fi
+
+            if [ "$(docker inspect \
+              --format '{{.State.Running}}' "$container_name")" != "true" ]; then
+              echo "FAIL: container exited before becoming healthy." >&2
+              docker logs "$container_name" || true
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          echo "FAIL: payment API did not become healthy within 60 seconds." >&2
+          exit 1
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: secureops-payment-api:ci
+          format: table
+          output: trivy-image.txt
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: payment-api-trivy-report
+          path: trivy-image.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag scanned image for GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ghcr.io/gauravghodevs/secureops-payment-api
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker tag secureops-payment-api:ci "$IMAGE:$IMAGE_TAG"
+
+      - name: Publish scanned image to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ghcr.io/gauravghodevs/secureops-payment-api
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker push "$IMAGE:$IMAGE_TAG"
+ "$manifest"
+            grep -q '^kind: Application
+
+  docker-build-and-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build payment API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: applications/payment-api/Dockerfile
+          push: false
+          load: true
+          tags: secureops-payment-api:ci
+
+      - name: Smoke-test container and verify non-root user
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          container_name=payment-api-smoke
+
+          cleanup() {
+            docker logs "$container_name" 2>/dev/null || true
+            docker rm -f "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run -d \
+            --name "$container_name" \
+            -p 127.0.0.1:8000:8000 \
+            secureops-payment-api:ci
+
+          runtime_user="$(docker inspect \
+            --format '{{.Config.User}}' "$container_name")"
+
+          test "$runtime_user" = "10001:10001"
+          echo "PASS: container is configured to run as non-root."
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent \
+              http://127.0.0.1:8000/health >/dev/null; then
+              echo "PASS: payment API health endpoint responded."
+              exit 0
+            fi
+
+            if [ "$(docker inspect \
+              --format '{{.State.Running}}' "$container_name")" != "true" ]; then
+              echo "FAIL: container exited before becoming healthy." >&2
+              docker logs "$container_name" || true
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          echo "FAIL: payment API did not become healthy within 60 seconds." >&2
+          exit 1
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: secureops-payment-api:ci
+          format: table
+          output: trivy-image.txt
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: payment-api-trivy-report
+          path: trivy-image.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag scanned image for GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ghcr.io/gauravghodevs/secureops-payment-api
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker tag secureops-payment-api:ci "$IMAGE:$IMAGE_TAG"
+
+      - name: Publish scanned image to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ghcr.io/gauravghodevs/secureops-payment-api
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker push "$IMAGE:$IMAGE_TAG"
+ "$manifest"
+            grep -q '^  source:
+
+  docker-build-and-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build payment API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: applications/payment-api/Dockerfile
+          push: false
+          load: true
+          tags: secureops-payment-api:ci
+
+      - name: Smoke-test container and verify non-root user
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          container_name=payment-api-smoke
+
+          cleanup() {
+            docker logs "$container_name" 2>/dev/null || true
+            docker rm -f "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run -d \
+            --name "$container_name" \
+            -p 127.0.0.1:8000:8000 \
+            secureops-payment-api:ci
+
+          runtime_user="$(docker inspect \
+            --format '{{.Config.User}}' "$container_name")"
+
+          test "$runtime_user" = "10001:10001"
+          echo "PASS: container is configured to run as non-root."
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent \
+              http://127.0.0.1:8000/health >/dev/null; then
+              echo "PASS: payment API health endpoint responded."
+              exit 0
+            fi
+
+            if [ "$(docker inspect \
+              --format '{{.State.Running}}' "$container_name")" != "true" ]; then
+              echo "FAIL: container exited before becoming healthy." >&2
+              docker logs "$container_name" || true
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          echo "FAIL: payment API did not become healthy within 60 seconds." >&2
+          exit 1
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: secureops-payment-api:ci
+          format: table
+          output: trivy-image.txt
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: payment-api-trivy-report
+          path: trivy-image.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag scanned image for GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ghcr.io/gauravghodevs/secureops-payment-api
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker tag secureops-payment-api:ci "$IMAGE:$IMAGE_TAG"
+
+      - name: Publish scanned image to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ghcr.io/gauravghodevs/secureops-payment-api
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker push "$IMAGE:$IMAGE_TAG"
+ "$manifest"
+            grep -q '^    repoURL: https://github.com/gauravghodevs/DB19.git
+
+  docker-build-and-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build payment API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: applications/payment-api/Dockerfile
+          push: false
+          load: true
+          tags: secureops-payment-api:ci
+
+      - name: Smoke-test container and verify non-root user
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          container_name=payment-api-smoke
+
+          cleanup() {
+            docker logs "$container_name" 2>/dev/null || true
+            docker rm -f "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run -d \
+            --name "$container_name" \
+            -p 127.0.0.1:8000:8000 \
+            secureops-payment-api:ci
+
+          runtime_user="$(docker inspect \
+            --format '{{.Config.User}}' "$container_name")"
+
+          test "$runtime_user" = "10001:10001"
+          echo "PASS: container is configured to run as non-root."
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent \
+              http://127.0.0.1:8000/health >/dev/null; then
+              echo "PASS: payment API health endpoint responded."
+              exit 0
+            fi
+
+            if [ "$(docker inspect \
+              --format '{{.State.Running}}' "$container_name")" != "true" ]; then
+              echo "FAIL: container exited before becoming healthy." >&2
+              docker logs "$container_name" || true
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          echo "FAIL: payment API did not become healthy within 60 seconds." >&2
+          exit 1
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: secureops-payment-api:ci
+          format: table
+          output: trivy-image.txt
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: payment-api-trivy-report
+          path: trivy-image.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag scanned image for GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ghcr.io/gauravghodevs/secureops-payment-api
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker tag secureops-payment-api:ci "$IMAGE:$IMAGE_TAG"
+
+      - name: Publish scanned image to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ghcr.io/gauravghodevs/secureops-payment-api
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker push "$IMAGE:$IMAGE_TAG"
+ "$manifest"
+            grep -q '^    targetRevision: main
+
+  docker-build-and-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build payment API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: applications/payment-api/Dockerfile
+          push: false
+          load: true
+          tags: secureops-payment-api:ci
+
+      - name: Smoke-test container and verify non-root user
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          container_name=payment-api-smoke
+
+          cleanup() {
+            docker logs "$container_name" 2>/dev/null || true
+            docker rm -f "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run -d \
+            --name "$container_name" \
+            -p 127.0.0.1:8000:8000 \
+            secureops-payment-api:ci
+
+          runtime_user="$(docker inspect \
+            --format '{{.Config.User}}' "$container_name")"
+
+          test "$runtime_user" = "10001:10001"
+          echo "PASS: container is configured to run as non-root."
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent \
+              http://127.0.0.1:8000/health >/dev/null; then
+              echo "PASS: payment API health endpoint responded."
+              exit 0
+            fi
+
+            if [ "$(docker inspect \
+              --format '{{.State.Running}}' "$container_name")" != "true" ]; then
+              echo "FAIL: container exited before becoming healthy." >&2
+              docker logs "$container_name" || true
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          echo "FAIL: payment API did not become healthy within 60 seconds." >&2
+          exit 1
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: secureops-payment-api:ci
+          format: table
+          output: trivy-image.txt
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: payment-api-trivy-report
+          path: trivy-image.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag scanned image for GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ghcr.io/gauravghodevs/secureops-payment-api
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker tag secureops-payment-api:ci "$IMAGE:$IMAGE_TAG"
+
+      - name: Publish scanned image to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ghcr.io/gauravghodevs/secureops-payment-api
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker push "$IMAGE:$IMAGE_TAG"
+ "$manifest"
+            grep -q '^    path:' "$manifest"
+            echo "PASS: $manifest"
+          done
 
   docker-build-and-scan:
     runs-on: ubuntu-latest
