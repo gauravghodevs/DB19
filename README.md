@@ -197,7 +197,6 @@ Additional delivery configuration exists for Jenkins and Argo CD. These files de
 
 Workflow configuration and execution results are separate evidence. Check the relevant GitHub Actions run before claiming a gate passed.
 
-
 ## Planned Infrastructure Automation
 
 ### Terraform
