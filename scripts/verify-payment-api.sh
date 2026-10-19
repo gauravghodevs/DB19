@@ -30,12 +30,13 @@ if [[ "$ready" != "$desired" || "$desired" -lt 1 ]]; then
   exit 1
 fi
 
-echo "==> Checking Service endpoints"
-endpoints="$(kube get endpoints payment-api \
-  -o jsonpath='{.subsets[*].addresses[*].ip}')"
+echo "==> Checking Service EndpointSlices"
+endpoints="$(kube get endpointslice \
+  -l kubernetes.io/service-name=payment-api \
+  -o jsonpath='{range .items[*].endpoints[?(@.conditions.ready==true)]}{.addresses[0]}{" "}{end}')"
 
 if [[ -z "$endpoints" ]]; then
-  echo "ERROR: payment-api Service has no ready endpoints." >&2
+  echo "ERROR: payment-api Service has no ready EndpointSlice endpoints." >&2
   exit 1
 fi
 
