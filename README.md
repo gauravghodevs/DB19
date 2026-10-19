@@ -221,9 +221,11 @@ Target configuration-management responsibilities include:
 
 These components will be marked implemented only after testing.
 
-## Planned Observability and Logging
+## Observability and Logging
 
-### Metrics and alerting
+### Implemented Metrics and Alerting
+
+Validation evidence: [Prometheus Alerting Validation](docs/observability/prometheus-alerting-validation.md).
 
 ```text
 Application / Kubernetes
@@ -236,7 +238,7 @@ Application / Kubernetes
         +--> Alertmanager
 ```
 
-### Centralized logging
+### Planned Centralized Logging
 
 ```text
 Application Logs
