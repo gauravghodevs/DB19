@@ -75,14 +75,10 @@ pipeline {
 
         stage('Code Quality Gate') {
             steps {
-                dir('applications/payment-api') {
-                    sh '''
-                        set -eu
-
-                        .venv/bin/python -m ruff --version
-                        .venv/bin/python -m ruff check app tests
-                    '''
-                }
+                sh '''
+                    set -eu
+                    scripts/quality-gate.sh
+                '''
             }
         }
 
