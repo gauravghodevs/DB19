@@ -1,0 +1,81 @@
+name: Dependency Supply Chain Security
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "applications/payment-api/**"
+      - ".github/workflows/dependency-supply-chain.yml"
+  pull_request:
+    paths:
+      - "applications/payment-api/**"
+      - ".github/workflows/dependency-supply-chain.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-audit-and-sbom:
+    name: Audit Dependencies and Generate SBOM
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: applications/payment-api
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: applications/payment-api/requirements-dev.txt
+
+      - name: Install project dependencies
+        run: |
+          python -m pip install --requirement requirements-dev.txt
+
+      - name: Record resolved project dependencies
+        run: |
+          mkdir -p "$RUNNER_TEMP/secureops-reports"
+          python -m pip freeze \
+            > "$RUNNER_TEMP/secureops-reports/resolved-requirements.txt"
+
+      - name: Install security tooling
+        run: |
+          python -m pip install pip-audit==2.10.1 cyclonedx-bom==7.5.0
+
+      - name: Audit Python dependencies
+        id: audit
+        continue-on-error: true
+        run: |
+          pip-audit \
+            --requirement requirements-dev.txt \
+            --format json \
+            --output "$RUNNER_TEMP/secureops-reports/payment-api-pip-audit.json"
+
+      - name: Generate CycloneDX SBOM
+        run: |
+          cyclonedx-py requirements \
+            "$RUNNER_TEMP/secureops-reports/resolved-requirements.txt" \
+            --output-format JSON \
+            --output-file "$RUNNER_TEMP/secureops-reports/payment-api-dependencies.cdx.json"
+
+      - name: Upload audit and SBOM reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: payment-api-dependency-security
+          path: ${{ runner.temp }}/secureops-reports/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Enforce dependency security gate
+        if: steps.audit.outcome != 'success'
+        run: |
+          echo "::error::Dependency audit failed. Review the uploaded audit report."
+          exit 1
