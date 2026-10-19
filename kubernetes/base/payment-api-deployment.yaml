@@ -15,17 +15,24 @@ spec:
         app: payment-api
     spec:
       automountServiceAccountToken: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: payment-api
           securityContext:
             runAsNonRoot: true
             runAsUser: 10001
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
             seccompProfile:
               type: RuntimeDefault
+          env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
           image: ghcr.io/gauravghodevs/secureops-payment-api:52a02d8f31ba180ddd96011dbf0e51a678f39ff1
           imagePullPolicy: Always
           ports:
@@ -38,6 +45,9 @@ spec:
             limits:
               cpu: "500m"
               memory: "256Mi"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           readinessProbe:
             httpGet:
               path: /ready
@@ -50,3 +60,6 @@ spec:
               port: http
             initialDelaySeconds: 10
             periodSeconds: 15
+      volumes:
+        - name: tmp
+          emptyDir: {}
