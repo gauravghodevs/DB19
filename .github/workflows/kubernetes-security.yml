@@ -1,0 +1,33 @@
+name: Kubernetes Security Scan
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "kubernetes/**"
+      - ".github/workflows/kubernetes-security.yml"
+  pull_request:
+    paths:
+      - "kubernetes/**"
+      - ".github/workflows/kubernetes-security.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trivy-config-scan:
+    name: Scan Kubernetes manifests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Scan Kubernetes configuration with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: kubernetes/base
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: "1"
