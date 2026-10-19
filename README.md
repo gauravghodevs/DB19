@@ -413,12 +413,12 @@ The objective is not to list DevOps tools. It is to demonstrate how those tools 
 
 ## Project Status
 
-**Active development**
+### Active development
 
 The repository is intentionally implemented in verifiable stages. Documentation is updated as capabilities move from planned to tested implementation.
 
 ## Author
 
-**Gaurav Singh Ghodage**
+### Gaurav Singh Ghodage
 
 DevOps / DevSecOps Engineering Portfolio Project
