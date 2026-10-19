@@ -38,10 +38,10 @@ The following capabilities are implemented and tested today:
 | Tekton | Planned | CI/CD stage |
 | SonarQube SAST | Planned | Security stage |
 | CycloneDX SBOM generation | Implemented | `.github/workflows/dependency-supply-chain.yml` |
-| Argo CD GitOps | Manifests present; reconciliation not verified | `argocd/` |
+| Argo CD GitOps | Implemented and verified | `argocd/` |
 | Terraform AWS infrastructure | Planned | Infrastructure stage |
 | Ansible configuration management | Planned | Automation stage |
-| Prometheus / Grafana configuration | Present; deployment not verified | `observability/` |
+| Prometheus / Grafana / Alertmanager | Deployed and verified | `observability/` |
 | Centralized ELK logging | Planned | Logging stage |
 
 ## Architecture Target
@@ -171,7 +171,7 @@ The `payment-api` Deployment applies Kubernetes container security controls:
 - `capabilities.drop: [ALL]` — drops all Linux capabilities from the container.
 - `seccompProfile.type: RuntimeDefault` — uses the container runtime's default seccomp profile.
 
-**Runtime verification:** The rollout completed successfully with 2/2 replicas ready. Both new pods reported zero restarts at verification time. The `/health`, `/ready`, and `/metrics/` endpoints each returned HTTP 200.
+**Runtime verification:** The rollout completed successfully with 2/2 replicas ready. Both new pods reported zero restarts at verification time. The `/health`, `/ready`, and `/metrics` returned HTTP 200. `/metrics/` redirects to `/metrics`.
 
 ## Security Engineering
 
@@ -345,7 +345,7 @@ secureops-devsecops-platform/
 - [x] Jenkins pipeline and Argo CD application configuration files added to the repository
 - [x] Two incident runbooks documented
 
-Configuration being present does not by itself prove a successful pipeline run, live Argo CD synchronization, or a deployed monitoring stack. Verify execution evidence separately.
+Pipeline execution must be verified separately. Argo CD synchronization and monitoring deployment have been verified in the running cluster.
 
 ### Remaining work
 
