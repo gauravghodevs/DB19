@@ -34,8 +34,8 @@ The following capabilities are implemented and tested today:
 | Prometheus metrics | Implemented | `/metrics/` |
 | Kustomize base | Implemented | `kubernetes/base` |
 | OpenShift deployment | Planned | Next platform stage |
-| Jenkins pipeline | Configured and verified: Build #7 SUCCESS | `ci/jenkins/Jenkinsfile` |
-| Tekton | Planned | CI/CD stage |
+| Jenkins pipeline | Configured and previously verified successful | `ci/jenkins/Jenkinsfile` |
+| Tekton | Implemented and verified: PipelineRun succeeded; linting passed and 7 tests passed | `ci/tekton/payment-api-pipeline.yaml` |
 | SonarQube SAST | Planned | Security stage |
 | CycloneDX SBOM generation | Implemented | `.github/workflows/dependency-supply-chain.yml` |
 | Argo CD GitOps | Implemented and verified | `argocd/` |
@@ -193,7 +193,7 @@ GitHub Actions workflows are configured for application CI, Kubernetes security,
 
 The application CI workflow includes automated tests and linting, Kubernetes manifest validation, container build and smoke tests, and Trivy image scanning. The dependency supply-chain workflow audits Python dependencies and generates a CycloneDX SBOM.
 
-Additional delivery configuration exists for Jenkins and Argo CD. Jenkins Build #7 completed successfully. Argo CD synchronization has also been verified in the live cluster.
+Jenkins pipeline execution has previously been verified successfully. The Tekton payment API pipeline has also been executed successfully: source cloning, Ruff linting, and all 7 tests passed. Argo CD synchronization has been verified in the live cluster.
 
 Workflow configuration and execution results are separate evidence. Check the relevant GitHub Actions run before claiming a gate passed.
 
@@ -342,15 +342,17 @@ secureops-devsecops-platform/
 - [x] GitHub Actions workflows for application CI, Kubernetes security, secret scanning, dependency review, dependency audit/SBOM, and documentation validation
 - [x] CycloneDX SBOM generation and Python dependency audit workflow
 - [x] Prometheus/Grafana configuration, dashboard definition, and alert rules
-- [x] Jenkins pipeline and Argo CD application configuration files added to the repository
+- [x] Jenkins pipeline configuration and successful execution verified
+- [x] Tekton pipeline implemented and verified with a successful PipelineRun (Ruff passed; 7 tests passed)
+- [x] Argo CD application configuration files added to the repository
 - [x] Two incident runbooks documented
 
-Jenkins Build #7 succeeded. Argo CD synchronization and monitoring deployment have been verified in the running cluster.
+Jenkins execution was previously verified successfully. The Tekton PipelineRun completed successfully, with linting and all 7 tests passing. Argo CD synchronization and monitoring deployment have been verified in the running cluster.
 
 ### Remaining work
 
 - [ ] Integrate the verified Jenkins pipeline into the delivery path
-- [ ] Add a Tekton pipeline
+- [ ] Integrate Tekton into the broader delivery path
 - [ ] Configure and verify a SonarQube SAST quality gate
 - [ ] Integrate Dependency-Track, if required beyond SBOM generation
 - [ ] Verify Argo CD synchronization against a live cluster
