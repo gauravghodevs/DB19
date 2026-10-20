@@ -1,0 +1,18 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: payment-api-tests
+  namespace: default
+spec:
+  workspaces:
+    - name: source
+  steps:
+    - name: run-tests
+      image: python:3.11-slim
+      workingDir: $(workspaces.source.path)/applications/payment-api
+      script: |
+        #!/bin/sh
+        set -eu
+        python -m pip install --no-cache-dir -r requirements-dev.txt
+        python -m ruff check app tests
+        python -m pytest -v

@@ -1,0 +1,19 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: payment-api-ci-run-
+  namespace: default
+spec:
+  pipelineRef:
+    name: payment-api-ci
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        metadata:
+          name: payment-api-source
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi

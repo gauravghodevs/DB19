@@ -1,0 +1,22 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: payment-api-git-clone
+  namespace: default
+spec:
+  params:
+    - name: url
+      type: string
+      default: https://github.com/gauravghodevs/DB19.git
+    - name: revision
+      type: string
+      default: main
+  workspaces:
+    - name: output
+  steps:
+    - name: clone
+      image: alpine/git:latest
+      script: |
+        #!/bin/sh
+        set -eu
+        git clone --depth 1 --branch "$(params.revision)" "$(params.url)" "$(workspaces.output.path)"

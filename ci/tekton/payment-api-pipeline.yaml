@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: payment-api-ci
+  namespace: default
+spec:
+  workspaces:
+    - name: source
+  tasks:
+    - name: clone-source
+      taskRef:
+        name: payment-api-git-clone
+      workspaces:
+        - name: output
+          workspace: source
+    - name: test-payment-api
+      runAfter:
+        - clone-source
+      taskRef:
+        name: payment-api-tests
+      workspaces:
+        - name: source
+          workspace: source
