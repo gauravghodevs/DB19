@@ -93,3 +93,19 @@ def test_metrics_scrapes_do_not_change_application_counters():
     assert after_response.status_code == 200
     assert get_request_count(after_response.text) == before_requests
     assert get_response_count(after_response.text, "200") == before_responses
+
+
+def test_metrics_trailing_slash_redirect_does_not_change_application_counters():
+    before_response = client.get("/metrics", follow_redirects=False)
+    assert before_response.status_code == 200
+    before_requests = get_request_count(before_response.text)
+    before_redirects = get_response_count(before_response.text, "307")
+
+    redirect = client.get("/metrics/", follow_redirects=False)
+    assert redirect.status_code == 307
+    assert redirect.headers["location"].endswith("/metrics")
+
+    after_response = client.get("/metrics", follow_redirects=False)
+    assert after_response.status_code == 200
+    assert get_request_count(after_response.text) == before_requests
+    assert get_response_count(after_response.text, "307") == before_redirects
