@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Response
+from app.secret_factory import create_secret_provider
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
     REGISTRY,
@@ -7,6 +8,8 @@ from prometheus_client import (
 )
 
 app = FastAPI(title="SecureOps Payment API", version="0.1.0")
+
+app.state.secret_provider = create_secret_provider()
 
 REQUEST_COUNT = Counter(
     "payment_api_requests_total",

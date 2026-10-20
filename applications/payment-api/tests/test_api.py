@@ -93,3 +93,12 @@ def test_metrics_scrapes_do_not_change_application_counters():
     assert after_response.status_code == 200
     assert get_request_count(after_response.text) == before_requests
     assert get_response_count(after_response.text, "200") == before_responses
+
+
+def test_app_has_configured_secret_provider():
+    from app.secrets import LocalMockSecretProvider
+
+    provider = app.state.secret_provider
+
+    assert isinstance(provider, LocalMockSecretProvider)
+    assert provider.get_secret("payment-api/example") == "local-dummy-secret"
