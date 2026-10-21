@@ -231,7 +231,7 @@ jobs:
           echo "FAIL: payment API did not become healthy within 60 seconds." >&2
           exit 1
 
-      - name: Scan image with Trivy
+      - name: Scan image with Trivy (human-readable report)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
@@ -241,15 +241,29 @@ jobs:
           vuln-type: os,library
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Scan image with Trivy (enforce security gate)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: secureops-payment-api:ci
+          format: json
+          output: trivy-image.json
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
           exit-code: "1"
 
-      - name: Upload Trivy report
+      - name: Upload Trivy reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: payment-api-trivy-report
-          path: trivy-image.txt
-          if-no-files-found: ignore
+          name: payment-api-trivy-reports
+          path: |
+            trivy-image.txt
+            trivy-image.json
+          if-no-files-found: warn
           retention-days: 14
 
       - name: Log in to GitHub Container Registry
