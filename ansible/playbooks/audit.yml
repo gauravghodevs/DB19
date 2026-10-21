@@ -1,0 +1,28 @@
+---
+- name: Audit Linux hosts for SecureOps
+  hosts: all
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Display host and operating system details
+      ansible.builtin.debug:
+        msg:
+          - "Host: {{ inventory_hostname }}"
+          - "OS family: {{ ansible_facts['os_family'] }}"
+          - "Distribution: {{ ansible_facts['distribution'] }}"
+          - "Version: {{ ansible_facts['distribution_version'] }}"
+          - "Architecture: {{ ansible_facts['architecture'] }}"
+
+    - name: Check available disk space on root filesystem
+      ansible.builtin.command:
+        argv:
+          - df
+          - -P
+          - /
+      register: root_disk
+      changed_when: false
+
+    - name: Report root filesystem usage
+      ansible.builtin.debug:
+        var: root_disk.stdout_lines
