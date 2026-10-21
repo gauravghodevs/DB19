@@ -231,6 +231,15 @@ jobs:
           echo "FAIL: payment API did not become healthy within 60 seconds." >&2
           exit 1
 
+      - name: Generate container image SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: secureops-payment-api:ci
+          format: cyclonedx
+          output: payment-api-image-sbom.cdx.json
+          exit-code: "0"
+
       - name: Scan image with Trivy (human-readable report)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -263,6 +272,7 @@ jobs:
           path: |
             trivy-image.txt
             trivy-image.json
+            payment-api-image-sbom.cdx.json
           if-no-files-found: warn
           retention-days: 14
 
