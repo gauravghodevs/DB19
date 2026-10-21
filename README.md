@@ -193,6 +193,12 @@ GitHub Actions workflows are configured for application CI, Kubernetes security,
 
 The application CI workflow includes automated tests and linting, Kubernetes manifest validation, container build and smoke tests, and Trivy image scanning. The dependency supply-chain workflow audits Python dependencies and generates a CycloneDX SBOM.
 
+### Container Image Security Gate
+
+The Payment API CI workflow scans the built container image with Trivy for OS and application-library vulnerabilities. The blocking scan is configured for **HIGH** and **CRITICAL** severity findings and ignores unfixed vulnerabilities. A blocking finding fails the workflow before the image-publishing step; the workflow also uploads human-readable and JSON reports for investigation.
+
+Latest verified evidence (2026-10-21): the [Payment API CI run](https://github.com/gauravghodevs/DB19/actions/runs/39586445574) completed successfully. Its uploaded Trivy reports recorded **zero detected vulnerabilities** in the scanned OS and Python package results. This is a point-in-time result for that image and vulnerability database, not a guarantee that the image is vulnerability-free. Review the report artifact from the workflow run when investigating findings.
+
 Jenkins pipeline execution has previously been verified successfully. The Tekton payment API pipeline has also been executed successfully: source cloning, Ruff linting, and all 7 tests passed. Argo CD synchronization has been verified in the live cluster.
 
 Workflow configuration and execution results are separate evidence. Check the relevant GitHub Actions run before claiming a gate passed.
